@@ -2,7 +2,7 @@
 
 Create dated maintenance reminders from a service plan you choose. Supply a first due date, or a known last-service date and a calendar-month interval. Export real all-day iCalendar events without optional runtime dependencies.
 
-An AI-assisted automated contribution for Jake's [Out West Septic](https://outwestseptic.com) project. This is affiliated planning software. It does not infer pumping frequency or record work as completed.
+An AI-assisted automated contribution for the [Out West Septic](https://outwestseptic.com) project. This is affiliated planning software. It does not infer pumping frequency or record work as completed.
 
 ## Create reminders
 
