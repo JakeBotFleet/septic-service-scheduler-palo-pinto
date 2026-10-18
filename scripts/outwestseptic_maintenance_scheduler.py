@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import argparse
 import calendar
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -41,6 +43,10 @@ def _text(value: str, label: str, maximum: int, multiline: bool = False) -> str:
     allowed = "\r\n\t" if multiline else ""
     if any((ord(char) < 32 and char not in allowed) or ord(char) == 127 for char in value):
         raise ValueError(f"{label} contains an unsupported control character.")
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ValueError(f"{label} must contain valid Unicode text encodable as UTF-8.") from None
     return value
 
 
@@ -184,6 +190,29 @@ class OutWestSepticMaintenanceSchedule:
 MaintenanceSchedule = OutWestSepticMaintenanceSchedule
 
 
+def _write_export(target: Path, content: str, *, overwrite: bool) -> None:
+    """Encode before opening files; stage replacements beside the destination."""
+    payload = content.encode("utf-8")
+    if not overwrite:
+        with target.open("xb") as output:
+            output.write(payload)
+        return
+    staged = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", dir=target.parent, prefix=".outwestseptic-export-",
+            suffix=".tmp", delete=False,
+        ) as output:
+            staged = Path(output.name)
+            output.write(payload)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(staged, target)
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Create dated service reminders from a schedule you choose.",
@@ -211,8 +240,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--overwrite requires --ics.")
         if args.ics is not None:
             content = schedule.to_ics()
-            with args.ics.open("w" if args.overwrite else "x", encoding="utf-8", newline="") as output:
-                output.write(content)
+            _write_export(args.ics, content, overwrite=args.overwrite)
     except (ValueError, OSError) as error:
         parser.error(str(error))
     print(schedule.render())

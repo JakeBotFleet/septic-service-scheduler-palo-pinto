@@ -30,7 +30,7 @@ The program never substitutes today's date for an unknown or invalid service dat
 - `--interval-months` has no default. It is required with last-service dates or multiple occurrences. Whole values from 1 through 1200 are supported.
 - `--occurrences` chooses 1 through 120 reminders and defaults to one.
 - `--schedule-id` is a stable identifier unique to the system **and task**; use a different ID for an inspection and a pumping reminder.
-- `--task` labels the reminder; `--notes` adds optional notes.
+- `--task` labels the reminder; `--notes` adds optional notes. Both require valid Unicode text encodable as UTF-8.
 - `--as-of` controls overdue/due/upcoming status and defaults to the computer's local date. Last-service dates after that date are rejected.
 - Past reminders remain visible as overdue. The program does not assume a missed service was completed.
 
@@ -42,7 +42,7 @@ Calendar months use the original anchor day. January 31 at monthly intervals bec
 
 The export contains a finite set of events rather than a repeating rule. That preserves month-end dates and supports intervals such as 18 months without rounding them to years. Re-exporting the same schedule ID and date retains its event UID. Import behavior depends on the calendar application; this tool does not synchronize or remove old reminders. If dates change, review and remove obsolete imported events.
 
-Files are preserved unless `--overwrite` is supplied. Invalid inputs and failed writes exit with status 2 without claiming an export succeeded. The parent directory must exist. No email, booking, alarm notification, or external calendar write is performed.
+Existing files require explicit `--overwrite`. The complete calendar is encoded before any file is opened. Overwrites are written and flushed to a temporary file in the destination directory, then atomically replace the old file; encoding, staging-write or replacement failures preserve the old bytes. Invalid inputs and failed writes exit with status 2 without claiming an export succeeded. The parent directory must exist. No email, booking, alarm notification, or external calendar write is performed.
 
 ## Python API
 
@@ -78,6 +78,6 @@ python -m pip install -r requirements-test.txt
 python -m unittest discover -s tests -v
 ```
 
-Without the parser, the standard-library tests still run and the independent parser test is explicitly skipped. CI installs the parser and tests Python 3.10 and 3.13. Calendar tests cover leap years, month ends, overdue dates, escaping, UTF-8 folding, UTC timestamps, exclusive end dates, exports, and write failures. Import into specific calendar applications has not been tested.
+Without the parser, the standard-library tests still run and the independent parser test is explicitly skipped. CI installs the parser and tests Python 3.10 and 3.13. Calendar tests cover leap years, month ends, overdue dates, escaping, UTF-8 folding, UTC timestamps, exclusive end dates, exports, invalid Unicode, and original-file preservation during simulated partial-write, flush and replacement failures. Import into specific calendar applications has not been tested.
 
 See the existing [license reference](LICENSE).
